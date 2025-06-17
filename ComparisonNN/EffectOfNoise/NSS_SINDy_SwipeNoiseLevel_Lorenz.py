@@ -9,22 +9,25 @@ Created on Wed May 27 19:10:39 2020
 # We set T=25, dt=0.01, q=10, x0=[-5.0,5.0,25.0], ro=0.9.
 # The SINDy library has 9 nonlinear features. We also perform the loop multiple times to record the performance of SINDy.
 # =============================================================================
-
+import sys
+DataLength = sys.argv[1]
+print("DataLength: ", DataLength)
 #%% Import packages
 import numpy as np
 from scipy.integrate import odeint
 import tensorflow as tf
-import matplotlib.pyplot as plt
-from utils_NSS_Swipe import *
+# import matplotlib.pyplot as plt
+from utils_NSS_SINDy import *
 import time
-import tensorflow_probability as tfp
+# import tensorflow_probability as tfp
 from datetime import datetime
 import os
 import importlib
 #%% Create a path and folder to save the result
-FolderName="Result_NSS_SwipeNoiseLevel_HighSampling\\"
+FolderName="Result/"
 FilePath=os.getcwd()
-SavePath=FilePath+'\\'+FolderName
+SavePath=os.path.join(FilePath,FolderName)
+print(SavePath)
 # Create the folder
 try:
     os.mkdir(SavePath)
@@ -47,11 +50,11 @@ p0=np.array([-10.0,10.0,28.0,-1.0,-1.0,1.0,-8/3])
 
 # Define the initial conditions
 #x0=np.array([-5.0,5.0,25.0])
-x0=np.array([5.0,5.0,25.0])
+x0=np.array([-8.0,8.0,27.0])
 
 # Define the time points
-T=25.0
-dt=0.001
+T=float(DataLength) # 10.0
+dt=0.01
 
 t=np.linspace(0.0,T,int(T/dt))
 
@@ -91,7 +94,7 @@ weights=tf.constant(DecayFactor(ro,stateVar,q),dtype=dataType)
 
 # Define the noise percent you would like to swipe
 #NoisePercentageToSwipe=[25,30,35,40,45,50]
-NoisePercentageToSwipe=[0,2,4,6,8,10,12,14,16,18,20]
+NoisePercentageToSwipe=[2.5,5.0,7.5,10.0,12.5,15.0,17.5,20.0,22.5,25.0,27.5,30.0,32.5,35.0,37.5,40.0]
 NoiseNum=len(NoisePercentageToSwipe)
 
 # Set a pin to generate new noise every run
@@ -106,7 +109,7 @@ Enoise_error_List=np.zeros((N_run,NoiseNum,Nloop))
 Evector_field_error_list=np.zeros((N_run,NoiseNum,Nloop))
 Epre_error_list=np.zeros((N_run,NoiseNum,Nloop))
 x_sim_list=[]
-Xi_List=[]
+Xi_List=np.zeros((N_run,NoiseNum,Nloop,9,stateVar))
 Xi0_List=[]
 
 # Softstart?
@@ -121,15 +124,13 @@ for i in range(N_run):
     
     for j in range(NoiseNum):
         # Set up the lambda
-        if j==0:
-            lam=0.05
-        elif j<=5:
+        if NoisePercentageToSwipe[j]<=10.0:
             lam=0.1
         else:
             lam=0.15
         
         # Recompute computational graph by calling tf.function one more time
-        LibGPU,RK45_F_SINDy,RK45_B_SINDy,SliceNoise,Prediction_SINDy,CalDerivativeMatrix,WeightMSE,OneStepLoss_NSS_SINDy,Train_NSS_SINDy,NSS_SINDy,ID_Accuracy_SINDy=ReloadFunction_SINDy()
+        # LibGPU,RK45_F_SINDy,RK45_B_SINDy,SliceNoise,Prediction_SINDy,CalDerivativeMatrix,WeightMSE,OneStepLoss_NSS_SINDy,Train_NSS_SINDy,NSS_SINDy,ID_Accuracy_SINDy=ReloadFunction_SINDy()
         
         print("\t Setting the noise percentage as:",NoisePercentageToSwipe[j],"%\n")
         # First, let's set the noise for this run
@@ -138,8 +139,10 @@ for i in range(N_run):
         np.random.seed(pin)
         
         # Generate the noise
-        NoiseMag=[np.std(x[:,i])*NoisePercentageToSwipe[j]*0.01 for i in range(stateVar)]
-        Noise=np.hstack([NoiseMag[i]*np.random.randn(dataLen,1) for i in range(stateVar)])
+        NoiseMag=NoisePercentageToSwipe[j]*0.01*16.0
+        Noise=np.hstack([NoiseMag*np.random.randn(dataLen,1) for i in range(stateVar)])
+        # NoiseMag=[np.std(x[:,i])*NoisePercentageToSwipe[j]*0.01 for i in range(stateVar)]
+        # Noise=np.hstack([NoiseMag[i]*np.random.randn(dataLen,1) for i in range(stateVar)])
         
         # Store the generated noise 
         NoiseList.append(Noise)
@@ -246,48 +249,18 @@ for i in range(N_run):
             Enoise_error_List[i,j,k]=Enoise_error
             Evector_field_error_list[i,j,k]=Evector_field_error
             Epre_error_list[i,j,k]=Epre_error
-            Xi_List.append(Xi.numpy())
+            Xi_List[i,j,k,:,:]=Xi.numpy()
+            # Xi_List.append(Xi.numpy())
             
-#%%
-print("\n\n\n\n Training finished! Please save the file using the Spyder variable explorer!")
+#% % Save the result
+import scipy.io as iomat
+results = {'TrainTimeList':TrainTimeList,
+              'Enoise_error_List':Enoise_error_List,'Evector_field_error_list':Evector_field_error_list,
+              'Epre_error_list':Epre_error_list,'Xi_List':Xi_List,
+              'Xi0_List':Xi0_List,'NoiseIDList':NoiseIDList}
+iomat.savemat(SavePath+DataLength+"_NSS_SINDy_SwipeNoiseLevel_Lorenz.mat",
+             results)
 
-#%%
-
-ind1=7
-
-plt.figure()
-plt.subplot(3,1,1)
-plt.plot(Epre_error_list[0,:,ind1])
-plt.title("Epre")
-plt.tight_layout
-plt.subplot(3,1,2)
-plt.plot(Evector_field_error_list[0,:,ind1])
-plt.title("Ef")
-plt.tight_layout
-plt.subplot(3,1,3)
-plt.plot(Enoise_error_List[0,:,ind1])
-plt.title("En")
-plt.tight_layout
-
-#%%
-ind2=7
-plt.figure()
-plt.subplot(3,1,1)
-plt.plot(Epre_error_list[0,ind2,:])
-#plt.yscale("log")
-plt.title("Epre")
-
-plt.subplot(3,1,2)
-plt.plot(Evector_field_error_list[0,ind2,:])
-#plt.yscale("log")
-plt.title("Ef")
-
-
-plt.subplot(3,1,3)
-plt.plot(Enoise_error_List[0,ind2,:])
-plt.yscale("log")
-plt.title("En")
-plt.tight_layout
 
 
 
