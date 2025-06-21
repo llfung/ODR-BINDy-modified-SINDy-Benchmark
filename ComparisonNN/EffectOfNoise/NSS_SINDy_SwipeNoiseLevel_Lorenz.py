@@ -173,7 +173,8 @@ for i in range(N_run):
             dxn=CalDerivative(xn,dt,1)
             Theta=Lib(xn,libOrder)
             Xi0=SINDy(Theta,dxn,lam,N_SINDy_Iter,disp,NormalizeLib)
-            NoiseVar=tf.Variable(tf.random.normal((dataLen,stateVar), mean=0.0, stddev=1.0, dtype=tf.dtypes.float32, seed=None, name=None))
+            NoiseEs=np.zeros((dataLen,stateVar),dtype=np.float32)
+            NoiseVar=tf.Variable(NoiseEs, dtype=tf.dtypes.float32)
             
         # Store initial guess
         Xi0_List.append(Xi0)
