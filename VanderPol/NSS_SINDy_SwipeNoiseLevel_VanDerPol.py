@@ -75,7 +75,7 @@ N_SINDy_Iter=15
 disp=0
 NormalizeLib=0
 libOrder=3
-lam=0.05
+lam=0.10
 
 # Check the GPU status
 CheckGPU()
