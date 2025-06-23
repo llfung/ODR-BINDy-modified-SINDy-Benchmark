@@ -53,7 +53,7 @@ x0=np.array([-6.0,5.0,0.0])
 
 # Define the time points
 DataLength_array = [10.0,12.0,14.0,16.0,18.0,20.0,22.0,24.0,26.0,28.0,30.0]
-T=float(DataLength_array[DataLength_i-1]) # 10.0
+T=float(DataLength_array[int(DataLength_i)-1]) # 10.0
 dt=0.05
 
 t=np.linspace(0.0,T,int(T/dt))
@@ -109,7 +109,7 @@ Enoise_error_List=np.zeros((N_run,NoiseNum,Nloop))
 Evector_field_error_list=np.zeros((N_run,NoiseNum,Nloop))
 Epre_error_list=np.zeros((N_run,NoiseNum,Nloop))
 x_sim_list=[]
-Xi_List=np.zeros((N_run,NoiseNum,Nloop,9,stateVar))
+Xi_List=np.zeros((N_run,NoiseNum,Nloop,10,stateVar))
 Xi0_List=[]
 
 # Softstart?
