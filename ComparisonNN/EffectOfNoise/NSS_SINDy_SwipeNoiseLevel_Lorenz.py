@@ -37,7 +37,7 @@ except:
 
 #%% Define some parameters to swipe the different noise level
 # Define how mant times you would like to run each noise level
-N_run=10
+N_run=50
 
 # Define how many iterations you allow when training your model
 N_train=5000
@@ -97,9 +97,6 @@ weights=tf.constant(DecayFactor(ro,stateVar,q),dtype=dataType)
 NoisePercentageToSwipe=[2.5,5.0,7.5,10.0,12.5,15.0,17.5,20.0,22.5,25.0,27.5,30.0,32.5,35.0,37.5,40.0]
 NoiseNum=len(NoisePercentageToSwipe)
 
-# Set a pin to generate new noise every run
-pin=0
-
 # Set a list to store the noise value
 NoiseList=[]
 NoiseEsList=[]
@@ -135,8 +132,7 @@ for i in range(N_run):
         print("\t Setting the noise percentage as:",NoisePercentageToSwipe[j],"%\n")
         # First, let's set the noise for this run
         # Define the random seed for the noise generation
-        pin=pin+1
-        np.random.seed(pin)
+        np.random.seed()
         
         # Generate the noise
         NoiseMag=NoisePercentageToSwipe[j]*0.01*16.0
