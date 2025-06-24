@@ -13,6 +13,8 @@ Run_i = sys.argv[2]
 
 DataLength = float((int(Param_i)-1)%11)*2.0+10.0
 NoisePercentage = (float((int(Param_i)-1)//11)+1.0)*2.5
+
+import os
 import numpy as np
 from scipy.integrate import odeint
 import tensorflow as tf
@@ -35,7 +37,7 @@ except:
 
 #%% Simulate
 # Define the random seed for the noise generation
-np.random.seed(nt(Param_i)*1000+int(Run_i))
+np.random.seed(int(Param_i)*1000+int(Run_i))
 
 # Define the parameters
 p0=np.array([0.2,0.2,5.7])
