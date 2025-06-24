@@ -6,20 +6,39 @@ Created on Mon Jun 22 20:03:38 2020
 """
 
 #%% Import packages
+import sys
+Param_i = sys.argv[1]
+Run_i = sys.argv[2]
+
+DataLength = float((int(Param_i)-1)%12)+1.0
+NoisePercentage = (float((int(Param_i)-1)//12)+1.0)*2.5
+import os
 import numpy as np
 from scipy.integrate import odeint
 import tensorflow as tf
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from utils_NSS_SINDy import *
 import time
 from datetime import datetime
 
+#%% Create a path and folder to save the result
+FolderName="Result/"
+FilePath=os.getcwd()
+SavePath=os.path.join(FilePath,FolderName)
+print(SavePath)
+# Create the folder
+try:
+    os.mkdir(SavePath)
+    print("The file folder does not exist, will create a new one....\n")
+except:
+    print("The folder already exist, will store the new result in current folder...\n")
+
 #%% Define how many percent of noise you need
-NoisePercentage=30
+# NoisePercentage=30
 
 #%% Simulate
 # Define the random seed for the noise generation
-np.random.seed(4)
+np.random.seed(int(Param_i)*1000+int(Run_i))
 
 # Define the parameters
 p0=np.array([0.5])
@@ -28,7 +47,7 @@ p0=np.array([0.5])
 x0=np.array([-2,1])
 
 # Define the time points
-T=10.0
+T=DataLength
 dt=0.01
 
 t=np.linspace(0.0,T,int(T/dt))
@@ -41,8 +60,8 @@ dx=np.transpose(VanderPol(np.transpose(x), 0, p0))
 stateVar,dataLen=np.transpose(x).shape
 
 # Generate the noise
-NoiseMag=[np.std(x[:,i])*NoisePercentage*0.01 for i in range(stateVar)]
-Noise=np.hstack([NoiseMag[i]*np.random.randn(dataLen,1) for i in range(stateVar)])
+NoiseMag=NoisePercentage*0.01*np.std(x,axis=None)
+Noise=np.hstack([NoiseMag*np.random.randn(dataLen,1) for i in range(stateVar)])
 
 # Add the noise and get the noisy data
 xn=x+Noise
@@ -52,22 +71,10 @@ N_SINDy_Iter=15
 disp=0
 NormalizeLib=0
 libOrder=3
-lam=0.15
+lam=0.05 
 
 # SoftStart?
 softstart=0
-
-#%% Now plot the result of Lorenz
-
-lw=5
-
-plt.figure()
-pp1=plt.plot(x[:,0],x[:,1],linewidth=lw,color='k',linestyle='-')
-pp1=plt.plot(xn[:,0],xn[:,1],linewidth=1.0,color='red',linestyle='--')
-plt.ylabel('x')
-plt.grid(False)
-plt.axis('off')
-#plt.savefig("SummaryFig\VanderPol_NoiseLevel_"+str(NoisePercentage)+".pdf")
 
 #%% Define a neural network
 # Check the GPU status
@@ -122,35 +129,12 @@ Xi=tf.Variable(Xi0,dtype=dataType)
 # Set the initial active matrix
 Xi_act=tf.constant(np.ones(Xi0.shape),dtype=dataType)
 
-#%% First plot the noise: true v.s. identified
-StartIndex=500 # Choose how many noise data point you would like to plot
-EndIndex=700
-
-plt.figure()
-plt.subplot(2,1,1)
-plt.title("Initial Guess")
-pp1=plt.plot(t[StartIndex:EndIndex],Noise[StartIndex:EndIndex,0],linewidth=1.5,color='b')
-pp1=plt.plot(t[StartIndex:EndIndex],NoiseVar.numpy()[StartIndex:EndIndex,0],linewidth=1.5,color='k',linestyle='--')
-plt.ylabel('Nx')
-plt.xlabel('t')
-plt.legend(['Noise Truth:x', 'Noise Estimate:x'],loc='upper right')
-plt.grid(True)
-
-plt.subplot(2,1,2)
-pp1=plt.plot(t[StartIndex:EndIndex],Noise[StartIndex:EndIndex,1],linewidth=1.5,color='b')
-pp1=plt.plot(t[StartIndex:EndIndex],NoiseVar.numpy()[StartIndex:EndIndex,1],linewidth=1.5,color='k',linestyle='--')
-plt.ylabel('Ny')
-plt.xlabel('t')
-plt.legend(['Noise Truth:y', 'Noise Estimate:y'],loc='upper right')
-plt.grid(True)
-
-
 #%% Define the optimizer
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.001,epsilon=1e-09)
 
 #%% Finally start training!
 Nloop=8
-N_train=5000
+N_train=15000
 
 # Set a list to store the noise value
 NoiseList=[]
@@ -214,88 +198,12 @@ for k in range(Nloop):
     Evector_field_error_list_SingleRun[k]=Evector_field_error
     Epre_error_list_SingleRun[k]=Epre_error
     Xi_List_SingleRun.append(Xi.numpy())
-    
-#%% Now plot the noise signal speration result
 
-# First plot the noise: true v.s. identified
-StartIndex=500 # Choose how many noise data point you would like to plot
-EndIndex=700
-
-plt.figure()
-plt.subplot(3,1,1)
-pp1=plt.plot(t[StartIndex:EndIndex],Noise[StartIndex:EndIndex,0],linewidth=1.5,color='b')
-pp1=plt.plot(t[StartIndex:EndIndex],NoiseID[StartIndex:EndIndex,0],linewidth=1.5,color='k',linestyle='--')
-plt.ylabel('Nx')
-plt.xlabel('t')
-plt.legend(['Noise Truth:x', 'Noise Estimate:x'],loc='upper right')
-plt.grid(True)
-
-plt.subplot(3,1,2)
-pp1=plt.plot(t[StartIndex:EndIndex],Noise[StartIndex:EndIndex,1],linewidth=1.5,color='b')
-pp1=plt.plot(t[StartIndex:EndIndex],NoiseID[StartIndex:EndIndex,1],linewidth=1.5,color='k',linestyle='--')
-plt.ylabel('Ny')
-plt.xlabel('t')
-plt.legend(['Noise Truth:y', 'Noise Estimate:y'],loc='upper right')
-plt.grid(True)
-
-#%%
-n_bins=int(180/5)
-x_scale=np.linspace(-4*max(NoiseMag), 4*max(NoiseMag), 1000)
-
-plt.figure()
-plt.subplot(2,1,1)
-plt.grid(True)
-pp6=plt.hist(Noise[:,0], bins = n_bins, color = 'blue', alpha=0.9,edgecolor = 'black',density=True)
-pp6=plt.hist(NoiseID[:,0], bins = n_bins, color = 'orange', alpha=0.75,edgecolor = 'black',density=True)
-plt.ylabel('Frequency')
-plt.xlabel('Noise:x')
-axes = plt.gca()
-axes.set_xlim([-4*max(NoiseMag),4*max(NoiseMag)])
-#axes.set_ylim([0,0.65])
-
-plt.subplot(2,1,2)
-plt.grid(True)
-pp6=plt.hist(Noise[:,1], bins = n_bins, color = 'blue', alpha=0.9,edgecolor = 'black',density=True)
-pp6=plt.hist(NoiseID[:,1], bins = n_bins, color = 'orange', alpha=0.75,edgecolor = 'black',density=True)
-plt.ylabel('Frequency')
-plt.xlabel('Noise:y')
-axes = plt.gca()
-axes.set_xlim([-4*max(NoiseMag),4*max(NoiseMag)])
-#axes.set_ylim([0,0.65])
-#plt.savefig('Percent'+str(NoisePercentage)+'_Distribution.pdf')
-
-#%%
-plt.figure()
-pp1=plt.plot(x[:,0],x[:,1],linewidth=lw,color='k',linestyle='-')
-pp1=plt.plot(xn[:,0]-NoiseID[:,0],xn[:,1]-NoiseID[:,1],linewidth=lw,color='orange',linestyle='--')
-plt.ylabel('x')
-plt.grid(False)
-plt.axis('off')
-#plt.savefig("VanderPol_Denoised_NoiseLevel_"+str(NoisePercentage)+".pdf")
-
-#%%
-Enoise_error,Evector_field_error,Epre_error,x_sim=ID_Accuracy_SINDy(x,dx,Noise,NoiseID,LibGPU,Xi,dataLen,dt)
-
-print("The error between the true noise and estimated noise is:",Enoise_error)
-print("The error between the true vector field and estimated vector field is:",Evector_field_error)
-print("The error between the true trajector and simulted trajectory is:",Epre_error)
-
-
-#%%
-
-plt.figure()
-plt.plot(Enoise_error_List_SingleRun)
-plt.ylabel('NoiseID Error')
-plt.xlabel('Loop Index')
-
-plt.figure()
-plt.plot(Evector_field_error_list_SingleRun)
-plt.ylabel('Derivative Error')
-plt.xlabel('Loop Index')
-
-plt.figure()
-plt.plot(Epre_error_list_SingleRun)
-plt.ylabel('Simulation Error')
-plt.xlabel('Loop Index')
-
-
+#% % Save the result
+import scipy.io as iomat
+results = {'TrainTimeList':TrainTimeList_SingleRun,
+              'Enoise_error_List':Enoise_error_List_SingleRun,'Evector_field_error_list':Evector_field_error_list_SingleRun,
+              'Epre_error_list':Epre_error_list_SingleRun,'Xi_List':Xi_List_SingleRun,
+              'Xi0_List':Xi0}
+iomat.savemat(SavePath+Param_i+"_"+Run_i+"_NSS_SINDy_VanDerPol.mat",
+             results)
