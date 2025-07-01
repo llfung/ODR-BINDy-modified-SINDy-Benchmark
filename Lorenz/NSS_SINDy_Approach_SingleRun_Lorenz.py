@@ -37,7 +37,7 @@ except:
 
 #%% Simulate
 # Define the random seed for the noise generation
-np.random.seed(int(Param_i)*1000+int(Run_i))
+np.random.seed()
 
 # Define the parameters
 p0=np.array([-10.0,10.0,28.0,-1.0,-1.0,1.0,-8/3])
