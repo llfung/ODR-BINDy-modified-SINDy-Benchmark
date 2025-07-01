@@ -3,13 +3,9 @@ Created on Mon May 25 00:26:35 2020
 
 @author: kahdi
 """
+
 #%% Import packages
 import sys
-Param_i = sys.argv[1]
-Run_i = sys.argv[2]
-
-DataLength = float((int(Param_i)-1)%10)+1.0
-NoisePercentage = (float((int(Param_i)-1)//10)+1.0)*2.5
 import os
 import numpy as np
 from scipy.integrate import odeint
@@ -19,6 +15,13 @@ from utils_NSS_SINDy import *
 import time
 # import tensorflow_probability as tfp
 from datetime import datetime
+
+#Noise and DataLength
+Param_i = sys.argv[1]
+Run_i = sys.argv[2]
+
+DataLength = float((int(Param_i)-1)%7)+4.0
+NoisePercentage = (float((int(Param_i)-1)//7)+1.0)*2.5
 
 #%% Create a path and folder to save the result
 FolderName="Result/"
@@ -49,7 +52,7 @@ x0=np.array([-8.0,8.0,27.0])
 T=DataLength
 dt=0.01
 
-t=np.linspace(0.0,T,int(T/dt))
+t=np.linspace(0.0,T,int(T/dt)+1)
 
 # Now simulate the system
 x=odeint(Lorenz,x0,t,args=(p0,),rtol = 1e-12, atol = 1e-12)
@@ -59,7 +62,8 @@ dx=np.transpose(Lorenz(np.transpose(x), 0, p0))
 stateVar,dataLen=np.transpose(x).shape
 
 # Generate the noise
-NoiseMag=NoisePercentage*0.01*np.std(x,axis=None)
+x_NoiseMag = odeint(Lorenz,x0,np.linspace(0.0,10.0,int(10.0/dt)+1),args=(p0,),rtol = 1e-12, atol = 1e-12)
+NoiseMag=NoisePercentage*0.01*np.std(x_NoiseMag,axis=None)
 Noise=np.hstack([NoiseMag*np.random.randn(dataLen,1) for i in range(stateVar)])
 
 # Add the noise and get the noisy data

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Mon Jun 22 20:03:38 2020
 
@@ -7,11 +6,6 @@ Created on Mon Jun 22 20:03:38 2020
 
 #%% Import packages
 import sys
-Param_i = sys.argv[1]
-Run_i = sys.argv[2]
-
-DataLength = float((int(Param_i)-1)%12)+1.0
-NoisePercentage = (float((int(Param_i)-1)//12)+1.0)*2.5
 import os
 import numpy as np
 from scipy.integrate import odeint
@@ -20,6 +14,13 @@ import tensorflow as tf
 from utils_NSS_SINDy import *
 import time
 from datetime import datetime
+
+#Noise and DataLength
+Param_i = sys.argv[1]
+Run_i = sys.argv[2]
+
+DataLength = float((int(Param_i)-1)%9)+4.0
+NoisePercentage = (float((int(Param_i)-1)//9)+1.0)*2.5
 
 #%% Create a path and folder to save the result
 FolderName="Result/"
@@ -60,7 +61,8 @@ dx=np.transpose(VanderPol(np.transpose(x), 0, p0))
 stateVar,dataLen=np.transpose(x).shape
 
 # Generate the noise
-NoiseMag=NoisePercentage*0.01*np.std(x,axis=None)
+x_NoiseMag = odeint(VanderPol,x0,np.linspace(0.0,12.0,int(12.0/dt)+1),args=(p0,),rtol = 1e-12, atol = 1e-12)
+NoiseMag=NoisePercentage*0.01*np.std(x_NoiseMag,axis=None)
 Noise=np.hstack([NoiseMag*np.random.randn(dataLen,1) for i in range(stateVar)])
 
 # Add the noise and get the noisy data
