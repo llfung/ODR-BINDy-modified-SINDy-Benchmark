@@ -1,0 +1,24 @@
+#!/bin/bash
+#PBS -J 1-112
+#PBS -l select=1:ncpus=4:ompthreads=4:mem=80gb
+#PBS -l walltime=12:00:00
+#PBS -N Lorenz_modSINDy
+#PBS -k oed
+
+module load tools/prod
+module load TensorFlow/2.11.0-foss-2022a-CUDA-11.7.0
+
+cd $PBS_O_WORKDIR
+
+# Presuming all run scripts are inside $PBS_O_WORKDIR
+# (the directory where the qsub command is called)
+# copy all the script from there to the temporary directory
+for i in $(seq 1 20);
+do
+while [ ! -f "./Result/${PBS_ARRAY_INDEX}_${i}_NSS_SINDy_Lorenz.mat" ]
+do
+python NSS_SINDy_Approach_SingleRun_Lorenz.py $PBS_ARRAY_INDEX $i
+done
+done
+
+exit 0
