@@ -2,7 +2,7 @@
 
 This repo contain the call scripts to [modified-SINDy](https://github.com/dynamicslab/modified-SINDy) to generate the data for comparison against [ODR-BINDy](https://github.com/llfung/ODR-BINDy).
 
-This is part of a paper on [https://github.com/llfung/ODR-BINDy](https://github.com/llfung/ODR-BINDy), which is coming out soon.
+This is part of a paper on [ODR-BINDy](https://github.com/llfung/ODR-BINDy), which is coming out soon.
 
 ### Examples
 
