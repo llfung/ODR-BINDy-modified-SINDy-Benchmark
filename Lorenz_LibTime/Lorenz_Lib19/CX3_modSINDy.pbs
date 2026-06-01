@@ -1,0 +1,20 @@
+#!/bin/bash
+#PBS -J 11-100
+#PBS -l select=1:ncpus=1:mem=8gb:cpu_type=rome
+#PBS -l walltime=2:00:00
+#PBS -N Lib19
+#PBS -k oed
+
+module load tools/prod
+module load TensorFlow/2.13.0-foss-2023a 
+
+cd $PBS_O_WORKDIR
+
+# Presuming all run scripts are inside $PBS_O_WORKDIR
+# (the directory where the qsub command is called)
+# copy all the script from there to the temporary directory
+
+python NSS_SINDy_Approach_SingleRun_Lorenz.py $PBS_ARRAY_INDEX 
+
+
+exit 0
